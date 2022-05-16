@@ -7,6 +7,7 @@
 #include <netinet/in.h>
 #include <string>
 #include <string.h>
+#include <fstream>
 
 // Beginning of Linked list implementation
 
@@ -76,6 +77,18 @@ void print_list()
 }
 
 // End of Linked list implementation
+
+std::ifstream read("messages.txt");
+std::ofstream edit;
+
+void retrieve_list()
+{
+    std::string old_data;
+    while(getline(read,old_data))
+    {
+        insert_list(old_data);
+    }
+}
 
 // Beginning of Socket Programming
 
@@ -172,6 +185,7 @@ void receive_message()
         exit(1);
     }
     insert_list((char*)receive_buffer);
+    edit<<(char*)receive_buffer<<std::endl;
     std::cout<<"Message received successfully"<<std::endl;
 }
 
@@ -187,7 +201,7 @@ void first_instance()
     receive_message();
     print_list();
     shutdown(socket_id,2);
-    std::cout<<"Connection is closed";
+    std::cout<<"Connection is closed\n";
 }
 
 void second_instance()
@@ -201,12 +215,16 @@ void second_instance()
 
 int main(int argc, char *argv[])
 {
+    retrieve_list();
+    read.close();
 
     print_list();
-    insert_list("I");
-    insert_list("am");
-    insert_list("Srivatsan");
-    print_list();
+    //insert_list("I");
+    //insert_list("am");
+    //insert_list("Srivatsan");
+    //print_list();
+
+    edit.open("messages.txt",std::ios_base::app);
     if(argc == 2)
     {
         first_instance();
@@ -215,6 +233,7 @@ int main(int argc, char *argv[])
     {
         second_instance();
     }
+    edit.close();
     return 0;
 
 }
