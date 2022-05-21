@@ -8,6 +8,7 @@
 #include <string>
 #include <string.h>
 #include <fstream>
+#include <unistd.h>
 
 // Beginning of Linked list implementation
 
@@ -78,13 +79,13 @@ void print_list()
 
 // End of Linked list implementation
 
-std::ifstream read("messages.txt");
+std::ifstream read_data("messages.txt");
 std::ofstream edit;
 
 void retrieve_list()
 {
     std::string old_data;
-    while(getline(read,old_data))
+    while (getline(read_data, old_data))
     {
         insert_list(old_data);
     }
@@ -95,6 +96,7 @@ void retrieve_list()
 int socket_id = 0;
 int port_num;
 struct sockaddr_in server_addr, client_addr;
+int server_socket;
 
 void socket_creation()
 {
@@ -104,10 +106,10 @@ void socket_creation()
         std::cout << "Error in opening a socket" << std::endl;
         exit(1);
     }
-    std::cout<<"Socket created successfully"<<std::endl;
+    std::cout << "Socket created successfully" << std::endl;
 }
 
-void bind_listen_and_accept(int port,int num_connections)
+void bind_listen_and_accept(int port, int num_connections)
 {
     port_num = port;
     server_addr.sin_family = AF_INET;
@@ -120,7 +122,7 @@ void bind_listen_and_accept(int port,int num_connections)
         std::cout << "Error in binding server" << std::endl;
         exit(1);
     }
-    std::cout<<"Binding done successfully"<<std::endl;
+    std::cout << "Binding done successfully" << std::endl;
     listen(socket_id, num_connections);
     socklen_t client_length = sizeof(client_addr);
     int client_socket_id = accept(socket_id, (struct sockaddr *)&client_addr, &client_length);
@@ -129,8 +131,9 @@ void bind_listen_and_accept(int port,int num_connections)
         std::cout << "Error in accepting client" << std::endl;
         exit(1);
     }
+    server_socket = socket_id;
     socket_id = client_socket_id;
-    std::cout<<"Client accepted successfully"<<std::endl;
+    std::cout << "Client accepted successfully" << std::endl;
 }
 
 void connect_to(int port)
@@ -146,86 +149,124 @@ void connect_to(int port)
         std::cout << "Error in connecting" << std::endl;
         exit(1);
     }
-    std::cout<<"Connected to server successfully"<<std::endl;
+    std::cout << "Connected to server successfully" << std::endl;
 }
 
-char send_buffer[256];
-char receive_buffer[256];
+char send_buffer[256] = "Send buffer";
+char receive_buffer[256] = "Read buffer";
+
+int bye_2 = 0;
+int close_bit = 0;
 
 void send_message()
 {
-    std::cout<<"Enter the new-node content"<<std::endl;
-    bzero(send_buffer,256);
-    fgets(send_buffer,255,stdin);
+    std::cout << "Enter the new-node content" << std::endl;
+    bzero(send_buffer, 256);
+    fgets(send_buffer, 255, stdin);
 
-    int length = strlen(send_buffer) -1;
-    if(send_buffer[length] == '\n')
+    int length = strlen(send_buffer) - 1;
+    if (send_buffer[length] == '\n')
     {
         send_buffer[length] = '\0';
     }
 
     insert_list(send_buffer);
-    int test = send(socket_id,send_buffer,255,0);
-    if(test <0)
+    int test = send(socket_id, send_buffer, 255, 0);
+    if (test < 0)
     {
-        std::cout<<"Error in sending message"<<std::endl;
+        std::cout << "Error in sending message" << std::endl;
         exit(1);
     }
-    std::cout<<"Message sent successfully"<<std::endl;
+    std::cout << "Message sent successfully" << std::endl;
 }
-
 
 void receive_message()
 {
-    
-    int test = recv(socket_id,receive_buffer,255,0);
-    if(test <0)
+
+    int test = recv(socket_id, receive_buffer, 255, 0);
+    if (test < 0)
     {
-        std::cout<<"Error in receiving message"<<std::endl;
+        std::cout << "Error in receiving message" << std::endl;
+        std::cout << "The other party probably closed without a bye message";
         exit(1);
     }
-    insert_list((char*)receive_buffer);
-    edit<<(char*)receive_buffer<<std::endl;
-    std::cout<<"Message received successfully"<<std::endl;
+    insert_list((char *)receive_buffer);
+    edit << (char *)receive_buffer << std::endl;
+    std::cout << "Message received successfully" << std::endl;
 }
 
-
-
-//Simulating 2 memebers in the network 
+// Simulating 2 memebers in the network
 
 void first_instance()
 {
     socket_creation();
-    bind_listen_and_accept(6000,1);
-    send_message();
-    receive_message();
+    bind_listen_and_accept(6000, 1);
+    while (bye_2 == 0 && close_bit == 0)
+    {
+        if(strcmp(receive_buffer, "bye") == 0 )
+        {
+            std::cout<<"Received a termination request from client"<<std::endl;
+            std::cout<<"Send 'bye' to acknoledge connection termination request"<<std::endl;
+        }
+        send_message();
+        if (strcmp(receive_buffer, "bye") == 0 && strcmp(send_buffer, "bye") == 0)
+        {
+            bye_2 = 1;
+        }
+        edit<<"Client : ";
+        receive_message();
+        if (bye_2 == 1 && strcmp(receive_buffer, "close") == 0)
+        {
+            close_bit = 1;
+        }
+        else if (bye_2 == 1)
+        {
+            bye_2 = 0;
+        }
+    }
     print_list();
-    shutdown(socket_id,2);
-    std::cout<<"Connection is closed\n";
+    close(server_socket);
+    close(socket_id);
+    // shutdown(socket_id, 2);
+    std::cout << "Connection is closed\n";
 }
 
 void second_instance()
 {
     socket_creation();
     connect_to(6000);
-    receive_message();
-    send_message();
+    while (bye_2 == 0 && close_bit == 0)
+    {
+        edit<<"Server : ";
+        receive_message();
+        if (strcmp(receive_buffer, "bye") == 0 && strcmp(send_buffer, "bye") == 0)
+        {
+            bye_2 = 1;
+            std::cout<<"Send 'close' to close the connection"<<std::endl;
+        }
+        
+        send_message();
+        if (bye_2 == 1 && strcmp(send_buffer, "close") == 0)
+        {
+            close_bit = 1;
+        }
+        else if (bye_2 == 1)
+        {
+            bye_2 = 0;
+        }
+    }
     print_list();
 }
 
 int main(int argc, char *argv[])
 {
     retrieve_list();
-    read.close();
+    read_data.close();
 
     print_list();
-    //insert_list("I");
-    //insert_list("am");
-    //insert_list("Srivatsan");
-    //print_list();
 
-    edit.open("messages.txt",std::ios_base::app);
-    if(argc == 2)
+    edit.open("messages.txt", std::ios_base::app);
+    if (argc == 2)
     {
         first_instance();
     }
@@ -235,5 +276,4 @@ int main(int argc, char *argv[])
     }
     edit.close();
     return 0;
-
 }
