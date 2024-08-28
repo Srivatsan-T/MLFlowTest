@@ -1,4 +1,2 @@
 mlflow
-os
-argparse
-yaml
+pyyaml
