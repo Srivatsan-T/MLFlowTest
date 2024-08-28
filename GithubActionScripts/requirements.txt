@@ -1,5 +1,2 @@
 mlflow
-shutil
-os
-argparse
-yaml
+pyyaml
