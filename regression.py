@@ -7,7 +7,7 @@ from sklearn.linear_model import Ridge
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 
 # Set the MLflow tracking URI (optional, if using a remote server)
-mlflow.set_tracking_uri("http://localhost:5000")  # Update with your MLflow tracking server URI if not local
+mlflow.set_tracking_uri("http://ec2-44-231-213-30.us-west-2.compute.amazonaws.com:5000")  # Update with your MLflow tracking server URI if not local
 mlflow.set_experiment("Cali-Housing")
 
 # Load the California Housing dataset
