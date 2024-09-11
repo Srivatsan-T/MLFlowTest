@@ -16,7 +16,7 @@ def get_latest_approved_model_version(registered_models, tracking_uri):
     
     for registered_model in registered_models:
         model_versions = mlflow.search_model_versions(filter_string= f"name='{registered_model.name}'")
-        approved_versions = [v for v in model_versions if "Approved" in v.aliases]
+        approved_versions = [v for v in model_versions if "approved" in v.aliases]
         
         if approved_versions:
             latest_version = max(approved_versions, key=lambda v: v.creation_timestamp)
