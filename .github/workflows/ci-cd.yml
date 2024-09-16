@@ -21,7 +21,7 @@ jobs:
           pip install -r GithubActionScripts/requirements.txt
 
       - name: Run test script
-        run: python3 GithubActionScripts/model_promoter.py http://ec2-18-236-218-12.us-west-2.compute.amazonaws.com:5000 http://ec2-18-236-218-12.us-west-2.compute.amazonaws.com:5001
+        run: python3 GithubActionScripts/model_promoter.py http://ec2-52-27-180-229.us-west-2.compute.amazonaws.com:5000 http://ec2-52-27-180-229.us-west-2.compute.amazonaws.com:5001
 
   deploy:
     if: github.ref == 'refs/heads/release'
@@ -37,4 +37,4 @@ jobs:
           pip install -r GithubActionScripts/requirements.txt
 
       - name: Run deploy script
-        run: python3 GithubActionScripts/model_promoter.py ec2-18-236-218-12.us-west-2.compute.amazonaws.com:5001 ec2-18-236-218-12.us-west-2.compute.amazonaws.com:5002
+        run: python3 GithubActionScripts/model_promoter.py ec2-52-27-180-229.us-west-2.compute.amazonaws.com:5001 ec2-52-27-180-229.us-west-2.compute.amazonaws.com:5002
