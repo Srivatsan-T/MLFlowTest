@@ -2,7 +2,7 @@ import mlflow
 import mlflow.pyfunc
 import pandas as pd
 
-mlflow.set_tracking_uri("http:localhost:5000")  
+mlflow.set_tracking_uri("http://localhost:5000")  
 
 from modules import EDA, utils, features, feature_importance, error_analysis, optimization, forecast
 
