@@ -1,9 +1,7 @@
 import mlflow
 import mlflow.pyfunc
-import boto3
 import pandas as pd
 import os
-from io import StringIO
 
 mlflow.set_tracking_uri("http:localhost:5000")  
 
