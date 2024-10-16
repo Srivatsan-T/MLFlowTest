@@ -49,13 +49,3 @@ def lgbm_smape(y_true, y_pred):
     smape_val = smape(y_true, y_pred)
     return 'SMAPE', smape_val, False
 
-import boto3
-from io import StringIO
-
-s3_client = boto3.client('s3')
-def save_data_to_s3(df, bucket_name, s3_key):
-    """Save DataFrame to an S3 bucket."""
-    csv_buffer = StringIO()
-    df.to_csv(csv_buffer, index=False)
-    s3_client.put_object(Bucket=bucket_name, Key=s3_key, Body=csv_buffer.getvalue())
-    print(f"Successfully uploaded predictions to {bucket_name}/{s3_key}")
