@@ -1,7 +1,6 @@
 import mlflow
 import mlflow.pyfunc
 import pandas as pd
-import os
 
 mlflow.set_tracking_uri("http:localhost:5000")  
 
