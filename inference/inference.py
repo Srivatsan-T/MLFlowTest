@@ -5,41 +5,9 @@ import pandas as pd
 import os
 from io import StringIO
 
-mlflow.set_tracking_uri("http://ec2-52-27-180-229.us-west-2.compute.amazonaws.com:5000")  
+mlflow.set_tracking_uri("http:localhost:5000")  
 
-# Configuration
-s3_client = boto3.client('s3')
-bucket_name = "mlflow-store-item-prediction"
-input_s3_key = "input/test.csv"  # S3 path for input data
-output_s3_key = "output/predictions.csv"  # S3 path to store predictions
-
-
-def load_data_from_s3(bucket_name, s3_key):
-    """Load data from an S3 bucket."""
-    response = s3_client.get_object(Bucket=bucket_name, Key=s3_key)
-    status = response.get("ResponseMetadata", {}).get("HTTPStatusCode")
-    if status == 200:
-        print(f"Successfully fetched data from {bucket_name}/{s3_key}")
-        data = pd.read_csv(response.get("Body"))
-        return data
-    else:
-        raise Exception(f"Failed to fetch data from S3. Status code: {status}")
-
-
-def save_data_to_s3(df, bucket_name, s3_key):
-    """Save DataFrame to an S3 bucket."""
-    csv_buffer = StringIO()
-    df.to_csv(csv_buffer, index=False)
-    s3_client.put_object(Bucket=bucket_name, Key=s3_key, Body=csv_buffer.getvalue())
-    print(f"Successfully uploaded predictions to {bucket_name}/{s3_key}")
-
-
-def load_model_from_mlflow(model_name, stage="Production"):
-    """Load the latest model from MLFlow registry."""
-    model_uri = f"models:/{model_name}/{stage}"
-    print(f"Loading model from: {model_uri}")
-    model = mlflow.pyfunc.load_model(model_uri)
-    return model
+from modules import EDA, utils, features, feature_importance, error_analysis, optimization, forecast
 
 def inference_pipeline():
 
@@ -50,22 +18,23 @@ def inference_pipeline():
     model = mlflow.pyfunc.load_model(model_uri)
     
     # Step 1: Load data from S3
-    #data = load_data_from_s3(bucket_name, input_s3_key)
-    data = pd.read_csv('inputs/test.csv')
-    X_test_final = data[[col for col in data.columns if col != 'sales']]
+    train = pd.read_csv('input/train.csv', parse_dates=['date'])
+    test = pd.read_csv('input/test.csv', parse_dates=['date'])
 
-    forecast = pd.DataFrame({
-        "date": data.date,
-        "store": data.store,
-        "item": data.item,
-        "sales": model.predict(X_test_final)
-    })
+    df = features.feature_selection(train, df)
+    cols = ['sales_lag_364', 'sales_lag_350', 'dayofweek_sales_lag_12', 'item_cluster', 'last_12months_sales_mean', 'sales_ewm_alpha_05_lag_365', 'day_of_week', 'dayofweek_sales_lag_13', 'season', 'sales_ewm_alpha_09_lag_91', 'store_cluster', 'sales_ewm_alpha_08_lag_91', 'last_12months_sales_sum', 'sales_ewm_alpha_07_lag_728', 'dayofweek_sales_lag_105', 'sales_ewm_alpha_05_lag_728', 'sales_ewm_alpha_095_lag_98', 'sales_ewm_alpha_07_lag_365', 'storesim_last_6months_sales_mean', 'month', 'sales_ewm_alpha_095_lag_91', 'last_3months_sales_mean', 'sales_ewm_alpha_07_lag_270', 'sales_ewm_alpha_05_lag_270', 'sales_ewm_alpha_07_lag_91', 'sales_ewm_alpha_095_lag_270', 'sales_lag_363', 'sales_ewm_alpha_08_lag_728', 'sales_ewm_alpha_095_lag_105', 'week_of_year', 'storesim_last_6months_sales_min', 'itemsim_last_9months_sales_std', 'dayofweek_sales_lag_40', 'is_wknd', 'day_of_year', 'sales_lag_700', 'itemsim_last_12months_sales_std', 'sales_lag_370', 'sales_ewm_alpha_08_lag_105', 'sales_ewm_alpha_08_lag_98', 'store_last_6months_sales_mean', 'itemsim_last_12months_sales_min', 'sales_ewm_alpha_09_lag_728', 'sales_ewm_alpha_07_lag_98', 'store_last_6months_sales_sum', 'sales_ewm_alpha_09_lag_98', 'dayofyear_sales_lag_2', 'sales_ewm_alpha_08_lag_112', 'sales_ewm_alpha_05_lag_105', 'last_3months_sales_sum', 'sales_lag_362', 'item_last_6months_sales_min', 'store_last_12months_sales_mean', 'sales_ewm_alpha_095_lag_112', 'itemsim_last_12months_sales_mean', 'ItemSalesSimilarity', 'sales_ewm_alpha_095_lag_728', 'item_last_6months_sales_std', 'sales_ewm_alpha_08_lag_365', 'dayofweek_sales_lag_112', 'itemsim_last_6months_sales_min', 'sales_ewm_alpha_07_lag_112', 'sales_ewm_alpha_07_lag_105', 'dayofyear_sales_lag_4', 'last_9months_sales_mean', 'storesim_last_12months_sales_sum']
 
-    # Step 4: Store the predictions back to S3
-    prediction_df = pd.DataFrame(forecast, columns=["predictions"])
-    #save_data_to_s3(prediction_df, bucket_name, output_s3_key)
-    print(prediction_df)
+    df.sort_values(["store", "item", "date"], inplace=True)
+    train_final = df.loc[(df["date"] < "2018-01-01"), :]
+    test_final = df.loc[(df["date"] >= "2018-01-01"), :]
+
+    X_train_final = train_final[cols]
+    Y_train_final = train_final.sales
+    X_test_final = test_final[cols]
+
+    for i in range(1,11):
+        forecast.forecast_stores(train, X_test_final, test_final, model,store = i)
     
-
 if __name__ == "__main__":
     inference_pipeline()
+
