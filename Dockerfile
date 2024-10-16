@@ -4,16 +4,17 @@ FROM python:3.9-slim
 # Set a working directory inside the container
 WORKDIR /app
 
-# Copy the requirements.txt file into the container
-COPY requirements.txt .
+# Install system dependencies required for LightGBM
+RUN apt-get update && apt-get install -y libgomp1
 
-# Install dependencies
+# Copy the requirements.txt file into the container
+COPY ../requirements.txt .
+
+# Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the inference script into the container
+# Copy the inference script and modules into the container
 COPY inference.py .
-
-# Copy the folder to the target directory (e.g., /app/myfolder)
 COPY modules /app/modules
 
 # Set environment variables (if any are required)
